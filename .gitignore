@@ -1,0 +1,26 @@
+# Variables de entorno (credenciales)
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Java / Maven
+target/
+*.class
+*.jar
+
+# Go
+servicio-go/reservaujap-go
+*.exe
+
+# Editores y sistema
+.vscode/
+.idea/
+.DS_Store
