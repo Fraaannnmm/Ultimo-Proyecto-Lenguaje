@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReservaUJAP — Reserva de espacios universitarios</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231d3f8f'/><path d='M9 10h14M9 16h14M9 22h8' stroke='%23f2a900' stroke-width='3' stroke-linecap='round'/></svg>">
+</head>
+
+<body>
+
+  <!-- ==================== LOGIN / REGISTRO ==================== -->
+  <section id="vista-login" class="login-wrap oculto">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="logo grande"><span class="logo-icono">R</span> ReservaUJAP</div>
+        <h1>Reserva laboratorios, aulas y auditorios de la universidad</h1>
+        <p>Consulta el catálogo de espacios, mira la disponibilidad en tiempo real y aparta tu horario en segundos.</p>
+        <ul class="login-features">
+          <li><span>⚡</span> Disponibilidad en vivo con WebSockets</li>
+          <li><span>🔐</span> Acceso seguro con JWT</li>
+          <li><span>📊</span> Reportes de ocupación y horas pico</li>
+        </ul>
+        <p class="login-stack">FastAPI · Express · Spring Boot · Go · PostgreSQL · MongoDB · Nginx</p>
+      </div>
+
+      <div class="login-form">
+        <div class="tabs-login">
+          <button class="tab-login activo" data-tab="login">Iniciar sesión</button>
+          <button class="tab-login" data-tab="registro">Registrarse</button>
+        </div>
+
+        <form id="form-login" class="form">
+          <label>Correo institucional
+            <input type="email" name="username" required placeholder="nombre@ujap.edu.ve" autocomplete="username">
+          </label>
+          <label>Contraseña
+            <input type="password" name="password" required placeholder="••••••••" autocomplete="current-password">
+          </label>
+          <button class="btn btn-primario btn-bloque" type="submit">Entrar</button>
+          <div class="demo">
+            <p>Cuentas de prueba (clave <code>ujap2026</code>):</p>
+            <div class="demo-botones">
+              <button type="button" class="chip" data-demo="estudiante@ujap.edu.ve">Estudiante</button>
+              <button type="button" class="chip" data-demo="profesor@ujap.edu.ve">Profesor</button>
+              <button type="button" class="chip" data-demo="admin@ujap.edu.ve">Admin</button>
+            </div>
+          </div>
+        </form>
+
+        <form id="form-registro" class="form oculto">
+          <label>Nombre completo
+            <input type="text" name="nombre" required minlength="3" placeholder="Ana Pérez">
+          </label>
+          <label>Correo institucional
+            <input type="email" name="email" required placeholder="ana.perez@ujap.edu.ve">
+          </label>
+          <div class="fila-2">
+            <label>Rol
+              <select name="rol">
+                <option value="estudiante">Estudiante</option>
+                <option value="profesor">Profesor</option>
+              </select>
+            </label>
+            <label>Carrera
+              <input type="text" name="carrera" placeholder="Ing. en Computación">
+            </label>
+          </div>
+          <label>Contraseña
+            <input type="password" name="password" required minlength="6" placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password">
+          </label>
+          <button class="btn btn-primario btn-bloque" type="submit">Crear cuenta</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== APLICACION ==================== -->
+  <div id="vista-app" class="oculto">
+    <header class="topbar">
+      <div class="logo"><span class="logo-icono">R</span> ReservaUJAP</div>
+      <nav class="nav" id="nav">
+        <button class="nav-item activo" data-vista="espacios">Espacios</button>
+        <button class="nav-item" data-vista="reservar">Reservar</button>
+        <button class="nav-item" data-vista="mias">Mis reservas</button>
+        <button class="nav-item" data-vista="panel">Panel</button>
+        <button class="nav-item solo-admin" data-vista="admin">Administración</button>
+      </nav>
+      <div class="topbar-der">
+        <span class="en-vivo" id="estado-ws" title="Conexión WebSocket con el servicio Go">
+          <span class="punto"></span><span id="texto-ws">Conectando…</span>
+        </span>
+        <div class="usuario-chip">
+          <div class="avatar" id="avatar">?</div>
+          <div>
+            <div class="usuario-nombre" id="usuario-nombre"></div>
+            <div class="usuario-rol" id="usuario-rol"></div>
+          </div>
+        </div>
+        <button class="btn btn-fantasma" id="btn-salir">Salir</button>
+      </div>
+    </header>
+
+    <main class="contenido">
+
+      <!-- ---------- Espacios (Node + MongoDB) ---------- -->
+      <section class="vista" id="vista-espacios">
+        <div class="vista-cabecera">
+          <div>
+            <h2>Catálogo de espacios</h2>
+            <p class="sub">Servicio Node.js · Express · MongoDB</p>
+          </div>
+          <input type="search" id="buscar-espacio" class="buscador" placeholder="Buscar por nombre, código o edificio…">
+        </div>
+        <div class="filtros" id="filtros-tipo">
+          <button class="chip activo" data-tipo="">Todos</button>
+          <button class="chip" data-tipo="laboratorio">Laboratorios</button>
+          <button class="chip" data-tipo="aula">Aulas</button>
+          <button class="chip" data-tipo="auditorio">Auditorios</button>
+          <button class="chip" data-tipo="sala_estudio">Salas de estudio</button>
+        </div>
+        <div class="grid-espacios" id="lista-espacios"></div>
+      </section>
+
+      <!-- ---------- Reservar (Java + PostgreSQL) ---------- -->
+      <section class="vista oculto" id="vista-reservar">
+        <div class="vista-cabecera">
+          <div>
+            <h2>Nueva reserva</h2>
+            <p class="sub">Servicio Java · Spring Boot · PostgreSQL — valida con Python y Node, avisa a Go</p>
+          </div>
+        </div>
+        <div class="reservar-grid">
+          <form id="form-reserva" class="tarjeta form">
+            <label>Espacio
+              <select name="espacioId" id="sel-espacio" required></select>
+            </label>
+            <div class="info-espacio" id="info-espacio"></div>
+            <label>Fecha
+              <input type="date" name="fecha" id="inp-fecha" required>
+            </label>
+            <div class="fila-2">
+              <label>Desde
+                <select name="horaInicio" id="sel-inicio" required></select>
+              </label>
+              <label>Hasta
+                <select name="horaFin" id="sel-fin" required></select>
+              </label>
+            </div>
+            <label>Asistentes
+              <input type="number" name="asistentes" id="inp-asistentes" min="1" value="1" required>
+            </label>
+            <label>Motivo
+              <input type="text" name="motivo" maxlength="200" required placeholder="Ej: Práctica de redes, sección 01">
+            </label>
+            <button class="btn btn-primario btn-bloque" type="submit">Confirmar reserva</button>
+            <div class="reglas" id="reglas"></div>
+          </form>
+
+          <div class="tarjeta">
+            <div class="agenda-cabecera">
+              <h3>Agenda del día</h3>
+              <span class="badge badge-vivo">● se actualiza en vivo</span>
+            </div>
+            <p class="sub" id="agenda-titulo"></p>
+            <div class="agenda" id="agenda"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Mis reservas ---------- -->
+      <section class="vista oculto" id="vista-mias">
+        <div class="vista-cabecera">
+          <div>
+            <h2>Mis reservas</h2>
+            <p class="sub">Historial de tus reservas activas y canceladas</p>
+          </div>
+        </div>
+        <div id="lista-mias" class="lista-reservas"></div>
+      </section>
+
+      <!-- ---------- Panel (Go + PostgreSQL + WebSocket) ---------- -->
+      <section class="vista oculto" id="vista-panel">
+        <div class="vista-cabecera">
+          <div>
+            <h2>Panel de ocupación</h2>
+            <p class="sub">Servicio Go · Gin · GORM · PostgreSQL · WebSocket</p>
+          </div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="panel-grid">
+          <div class="tarjeta">
+            <h3>Ocupación por espacio <span class="sub">(horas reservadas)</span></h3>
+            <div id="graf-ocupacion" class="barras"></div>
+          </div>
+          <div class="tarjeta">
+            <h3>Horas pico <span class="sub">(reservas que cubren cada hora)</span></h3>
+            <div id="graf-horas" class="columnas"></div>
+          </div>
+          <div class="tarjeta">
+            <h3>Actividad en vivo</h3>
+            <ul id="actividad" class="actividad"></ul>
+          </div>
+          <div class="tarjeta">
+            <h3>Estado de los microservicios</h3>
+            <div id="servicios" class="servicios"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Administracion ---------- -->
+      <section class="vista oculto" id="vista-admin">
+        <div class="vista-cabecera">
+          <div>
+            <h2>Administración</h2>
+            <p class="sub">Gestión del catálogo (Node), usuarios (Python) y reservas (Java)</p>
+          </div>
+        </div>
+
+        <div class="admin-grid">
+          <form id="form-espacio" class="tarjeta form">
+            <h3 id="titulo-form-espacio">Nuevo espacio</h3>
+            <input type="hidden" name="id">
+            <div class="fila-2">
+              <label>Código <input name="codigo" required placeholder="LAB-04"></label>
+              <label>Tipo
+                <select name="tipo">
+                  <option value="laboratorio">Laboratorio</option>
+                  <option value="aula">Aula</option>
+                  <option value="auditorio">Auditorio</option>
+                  <option value="sala_estudio">Sala de estudio</option>
+                </select>
+              </label>
+            </div>
+            <label>Nombre <input name="nombre" required placeholder="Laboratorio de IA"></label>
+            <div class="fila-3">
+              <label>Edificio <input name="edificio" required placeholder="Edificio A"></label>
+              <label>Piso <input name="piso" type="number" value="1"></label>
+              <label>Capacidad <input name="capacidad" type="number" min="1" required value="20"></label>
+            </div>
+            <label>Descripción <input name="descripcion" placeholder="Breve descripción"></label>
+            <label>Equipamiento <span class="sub">(separado por comas)</span>
+              <input name="equipamiento" placeholder="Proyector, Aire acondicionado">
+            </label>
+            <label>Características <span class="sub">(JSON libre — se guarda tal cual en MongoDB)</span>
+              <textarea name="caracteristicas" rows="4"
+                placeholder='{"computadoras": 25, "software": ["Python", "Jupyter"]}'></textarea>
+            </label>
+            <label class="check"><input type="checkbox" name="activo" checked> Disponible para reservas</label>
+            <div class="fila-2">
+              <button class="btn btn-primario" type="submit">Guardar</button>
+              <button class="btn btn-fantasma" type="button" id="btn-cancelar-edicion">Limpiar</button>
+            </div>
+          </form>
+
+          <div class="tarjeta">
+            <h3>Espacios registrados</h3>
+            <div id="admin-espacios" class="tabla-wrap"></div>
+          </div>
+        </div>
+
+        <div class="admin-grid">
+          <div class="tarjeta">
+            <h3>Usuarios</h3>
+            <div id="admin-usuarios" class="tabla-wrap"></div>
+          </div>
+          <div class="tarjeta">
+            <h3>Todas las reservas</h3>
+            <div id="admin-reservas" class="tabla-wrap"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
